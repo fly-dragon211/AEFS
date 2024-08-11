@@ -1,6 +1,5 @@
 import torch
 import tqdm, gc, time, os
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 from sklearn.metrics import roc_auc_score, log_loss
 from torch.utils.data import DataLoader
 from models.emb_MLPs import *
@@ -276,7 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', default='movielens1M', help='criteo, avazu, movielens1M')
     parser.add_argument('--model_name', default='AdaFS_soft',
                         help='AdaFS_soft, AdaFS_hard, AdaFS_hard_attention, AdaFS_twoModel')
-    parser.add_argument('--k', type=int, default=0)  # 选取的特征数,for AdaFS_hard
+    parser.add_argument('--k', type=int, default=0)  # for AdaFS_hard
     parser.add_argument('--useWeight', type=bool, default=True)
     parser.add_argument('--reWeight', type=int, default=1)
     parser.add_argument('--useBN', type=bool, default=True)
@@ -299,19 +298,18 @@ if __name__ == '__main__':
     # add
     parser.add_argument('--root_path', default='./',
                         help='the root path "./"')
-    parser.add_argument('--do_train', type=int, default=1)  # 是否训练
-    parser.add_argument('--do_eval', type=int, default=1)  # 是否测试
-    parser.add_argument('--AdaFS_hard_threshold', type=float, default=0)  # 是否按阈值筛选
+    parser.add_argument('--do_train', type=int, default=1)  #
+    parser.add_argument('--do_eval', type=int, default=1)  #
+    parser.add_argument('--AdaFS_hard_threshold', type=float, default=0)  #
     parser.add_argument('--load_model_dir', default='None', help='load_model_dir')
     ## For attention
     parser.add_argument('--AttentionWithAve', type=int, default=1)
     ## For train FS synchronize
     parser.add_argument('--TrainFSSynchronize', type=int, default=1)
-    ## softmax 后面是否加 norm，
     parser.add_argument('--softmaxAddNorm', default='None', help='Max-min, Max-min_0.1_1, Max-min_0.5_1, ...')
 
 
-    ## for AdaFS_twoModel model
+    ## for AEFS model
     parser.add_argument('--embed_dim', type=int, default=32, help='original=32')
     parser.add_argument('--embed_dim_small', type=int, default=4, help='original=4')
     parser.add_argument('--dense_type', default='MultiLayerPerceptron',
@@ -320,14 +318,14 @@ if __name__ == '__main__':
                         help='the dense layer type of small model')
     parser.add_argument('--two_model_optimizer_type', default='simultaneous', help='simultaneous, split, for `AdaFS_twoModel_emb_align` model')
     parser.add_argument('--two_model_controller_position', default='small_emb', help='normal_emb, small_emb, for `AdaFS_twoModel_emb_align` model')
-    ## for AEFS model
+
     parser.add_argument('--weight_align_loss', default='None', help='None, pearson, huber, for `AEFS` model')
     parser.add_argument('--score_align_loss', default='MSE', help='MSE, kl_loss, huber, for `AEFS` model')
     parser.add_argument('--field_align_loss', default='MSE', help='MSE, kl_loss, huber, for `AEFS` model')
     parser.add_argument('--score_and_field_align_loss_weight', default='0.3_0.3', help='for `AEFS` model')
     parser.add_argument('--small_loss_weight', type=float, default=1, help='for `AEFS` model')
     parser.add_argument('--controller_type', default="controller_mlp", help='controller_mlp, MvFS, attention')
-    parser.add_argument('--k_ratio', type=float, default=0.5, help='the ratio of selected feature') # 选取的特征数
+    parser.add_argument('--k_ratio', type=float, default=0.5, help='the ratio of selected feature') #
 
 
     args = parser.parse_args()
@@ -349,7 +347,6 @@ if __name__ == '__main__':
         dataset_path = os.path.join(args.root_path, 'dataset/ml-1m/train.txt')
         param_dir += '/mlp:movielens1M_noController.pt'
 
-    # 对应数据集的field维度
     if args.dataset_name == 'movielens1M':
         args.field_dims = [3706,301,81,6040,21,7,2,3402]
     elif args.dataset_name == 'avazu':
@@ -362,11 +359,9 @@ if __name__ == '__main__':
        192773,   3175,     27,  11422, 181075,     11,   4654,   2032,
             5, 189657,     18,     16,  59697,     86,  45571]
 
-    # 没有controller的设置
     if args.model_name == 'NoSlct':
         args.controller = False
 
-    # hard selection 没有定义选取特征数k时，赋值fields数的一半
     if args.controller:
         if args.k == 0:
             args.k = int(len(args.field_dims) / 2)

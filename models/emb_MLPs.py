@@ -662,9 +662,6 @@ class AEFS_emb_align_addLoss(nn.Module):
         return result
 
 class AEFS(nn.Module):
-    """
-    1. 加入大小模型不同 dense net 功能
-    """
 
     def __init__(self, args):
         super().__init__()
@@ -848,7 +845,6 @@ class AEFS(nn.Module):
             mlp_layer = self.mlp
             BN_layer = self.BN
         field = emb_layer(field)
-        # 对每个feature进行batchnorm
         if self.useBN == True:
             field = BN_layer(field)
 
@@ -878,17 +874,17 @@ class AEFS(nn.Module):
     def get_predict_score_with_mask(self, raw_field, mask, kmax_index):
         # ******************** early selection *************************
         batch_size, seq_len = raw_field.shape
-        # Step 1: 将 kmax_index 传入 self.emb 进行嵌入计算
+        # Step 1: Pass kmax_index into self.emb for embedding calculation
         field = self.emb(raw_field, kmax_index)  # field.shape should be [2048, embedding_dim, k]
-        # Step 2: 将嵌入后的结果根据 kmax_index 补回到原始的维度
+        # Step 2: Fill the embedded result back to the original dimension according to kmax_index
         output_field = torch.zeros((batch_size, field.shape[1], seq_len), dtype=field.dtype, device=field.device)
-        # 使用 scatter_ 函数进行赋值
+        # Assignment using scatter_ function
         kmax_index1 = kmax_index.unsqueeze(1).expand(-1, field.shape[1], -1)
-        output_field.scatter_(2, kmax_index1, field)  # field 中的值被分散到 output_field 中，具体位置由 kmax_index 指定。
+        # The values in field are dispersed into output_field, and the specific positions are specified by kmax_index.
+        output_field.scatter_(2, kmax_index1, field)
         field = output_field
         # *********************************************
 
-        # 对每个feature进行batchnorm
         if self.useBN == True:
             field = self.BN(field)
 
